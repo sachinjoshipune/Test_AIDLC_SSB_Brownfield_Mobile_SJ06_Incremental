@@ -1,0 +1,4 @@
+# SpecOps pipeline internal files (never commit)
+.taskstatus/
+.agentstatus/
+.execution/

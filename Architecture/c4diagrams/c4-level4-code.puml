@@ -1,0 +1,169 @@
+@startuml
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+title Code-Level Class Diagram — Navigation, Localization & API Client (SB360 Mobile App)
+
+enum NavigationTabState {
+  INACTIVE
+  ACTIVE
+}
+
+enum ScreenLoadState {
+  IDLE
+  LOADING
+  LOADED
+  ERROR
+}
+
+enum LocaleCode {
+  EN
+  AR
+}
+
+enum SyncState {
+  SYNCED
+  PENDING_SYNC
+}
+
+enum UILayoutDirectionState {
+  LTR
+  RTL
+}
+
+class NavigationItem {
+  +id: string
+  +label: string
+  +icon: string
+  +route: string
+  +order: number
+  +isActive: boolean
+}
+
+class UserProfile {
+  +userId: string
+  -displayName: string
+  -email: string
+  +language: LocaleCode
+}
+
+class LocalePreference {
+  +locale: LocaleCode
+  +direction: UILayoutDirectionState
+  +syncState: SyncState
+  +setLocale(locale: LocaleCode): void
+}
+
+class NavigationErrorEvent {
+  +route: string
+  +errorCode: string
+  +timestamp: string
+  +retryCount: number
+}
+
+class SessionState {
+  +activeTabId: string
+  +lastVisitedRoute: string
+  +appLaunchTimestamp: string
+}
+
+class NavigationTabMachine {
+  -state: NavigationTabState
+  -activeTabId: string
+  +selectTab(tabId: string): void
+  -deactivatePrevious(): void
+  -validateRouteExists(tabId: string): boolean
+}
+
+class ScreenLoadMachine {
+  -state: ScreenLoadState
+  -retryCount: number
+  -retryWindowStart: string
+  +startLoad(route: string): void
+  +onLoadSuccess(): void
+  +onLoadFailure(errorCode: string): void
+  +retry(): void
+  +returnToHome(): void
+  -isRetryThrottled(): boolean
+}
+
+class LocalePreferenceMachine {
+  -preference: LocalePreference
+  +switchLocale(locale: LocaleCode): void
+  -persistToServer(): void
+  -deferToLocalCache(): void
+  +onReconnectSync(): void
+}
+
+class UILayoutDirectionMachine {
+  -direction: UILayoutDirectionState
+  +applyDirection(locale: LocaleCode): void
+}
+
+class ApiClient {
+  -baseURL: string
+  -timeoutMs: number
+  +getNavigationConfig(locale: LocaleCode): NavigationItem[]
+  +getI18nStrings(locale: LocaleCode): map
+  +updateLanguage(userId: string, language: LocaleCode): LocalePreference
+  +getProfile(): UserProfile
+  +getSectionContent(sectionId: string): object
+  +getHealth(): object
+  -handleError(error: object): NavigationErrorEvent
+}
+
+class PersistenceAdapter {
+  +saveNonPII(key: string, value: object): void
+  +loadNonPII(key: string): object
+  +saveSecure(key: string, value: object): void
+  +loadSecure(key: string): object
+  +clearOnLogout(): void
+}
+
+interface IAuditLogger {
+  +logTransition(eventName: string, payload: object): void
+}
+
+class TelemetryAuditLogger {
+  +logTransition(eventName: string, payload: object): void
+}
+
+NavigationTabMachine --> NavigationTabState
+NavigationTabMachine --> NavigationItem : validates against
+NavigationTabMachine --> SessionState : updates activeTabId
+NavigationTabMachine ..> IAuditLogger : nav.tab.selected/deselected
+
+ScreenLoadMachine --> ScreenLoadState
+ScreenLoadMachine --> NavigationErrorEvent : creates on failure
+ScreenLoadMachine --> ApiClient : invokes section/content calls
+ScreenLoadMachine ..> IAuditLogger : nav.screen.load.*
+
+LocalePreferenceMachine --> LocalePreference
+LocalePreferenceMachine --> LocaleCode
+LocalePreferenceMachine --> SyncState
+LocalePreferenceMachine --> ApiClient : PUT profile/language
+LocalePreferenceMachine --> UILayoutDirectionMachine : triggers
+LocalePreferenceMachine ..> IAuditLogger : profile.language.*
+
+UILayoutDirectionMachine --> UILayoutDirectionState
+UILayoutDirectionMachine ..> IAuditLogger : ui.direction.changed
+
+UserProfile --> LocaleCode
+LocalePreference --> LocaleCode
+LocalePreference --> UILayoutDirectionState
+LocalePreference --> SyncState
+
+ApiClient --> NavigationItem : returns (API-001)
+ApiClient --> UserProfile : returns (API-004)
+ApiClient --> LocalePreference : returns (API-003)
+ApiClient --> NavigationErrorEvent : produces on error
+
+PersistenceAdapter ..> SessionState : non-PII store
+PersistenceAdapter ..> LocalePreference : non-PII store
+PersistenceAdapter ..> UserProfile : secure store (PII)
+
+TelemetryAuditLogger ..|> IAuditLogger
+
+@enduml

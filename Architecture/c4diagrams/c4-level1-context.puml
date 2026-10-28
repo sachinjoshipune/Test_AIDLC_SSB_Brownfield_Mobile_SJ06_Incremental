@@ -1,0 +1,25 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/v2.11.0/C4_Context.puml
+LAYOUT_WITH_LEGEND()
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultTextAlignment center
+
+title System Context — SB360 Mobile Application (Navigation & Localization)
+
+Person(visitor, "Visitor", "Single end-user role (anonymous or authenticated via Bearer/JWT); no RBAC differentiation")
+
+System(sb360App, "SB360 Mobile App", "React Native hybrid app (iOS + Android) delivering Bottom Navigation Bar, bilingual EN/AR UI, and resilient navigation")
+
+System_Ext(sb360Backend, "SB360 Backend API", "Existing, undocumented REST/JSON API providing navigation config, i18n strings, profile, section content, health (API-001..API-006)")
+System_Ext(telemetrySvc, "Error/Crash Telemetry Service", "Vendor TBD — receives PII-free audit and crash telemetry events")
+System_Ext(secureStorage, "Device Secure Storage (Keychain/Keystore)", "OS-level secure store for PII (email, displayName) and auth tokens")
+System_Ext(localStorage, "Device Local Storage (AsyncStorage)", "OS-level key-value store for non-PII cache: language preference, nav config, last-active tab")
+
+Rel(visitor, sb360App, "Navigates Explore/Map/Plan/My Profile, switches language", "Touch UI")
+Rel(sb360App, sb360Backend, "Fetches nav config, i18n strings, profile, section content; updates language preference", "HTTPS/REST JSON, TLS 1.2+")
+Rel(sb360App, telemetrySvc, "Sends state-transition audit events and crash telemetry (PII-free)", "HTTPS event payload")
+Rel(sb360App, secureStorage, "Reads/writes PII and auth tokens", "Keychain/Keystore API")
+Rel(sb360App, localStorage, "Reads/writes cached language, nav config, last-active tab", "AsyncStorage API")
+
+@enduml

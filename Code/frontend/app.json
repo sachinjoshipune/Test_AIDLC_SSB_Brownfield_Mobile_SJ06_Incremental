@@ -1,0 +1,15 @@
+{
+  "name": "SB360Mobile",
+  "displayName": "SB360",
+  "expo": {
+    "name": "SB360",
+    "slug": "sb360-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["ios", "android", "web"],
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}

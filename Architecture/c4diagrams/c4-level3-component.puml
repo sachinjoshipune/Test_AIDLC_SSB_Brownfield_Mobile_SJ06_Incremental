@@ -1,0 +1,46 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/v2.11.0/C4_Component.puml
+LAYOUT_WITH_LEGEND()
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam defaultTextAlignment center
+
+title Component Diagram — React Native App Container (SB360 Mobile App)
+
+Person(visitor, "Visitor", "Single end-user role")
+
+Container_Boundary(rnApp, "React Native App") {
+  Component(navModule, "Navigation Module", "React Navigation (bottom-tab), Redux Toolkit", "Renders Bottom Navigation Bar (276x53dp); owns NavigationTab state machine; consumes API-001")
+  Component(i18nModule, "Localization Module", "i18next, react-i18next, react-native-localize", "Owns LocalePreference/UILayoutDirection state machines; consumes API-002; bundled fallback strings")
+  Component(profileModule, "Profile Module", "React component, Redux Toolkit", "My Profile screen; language switch control; consumes API-003/API-004")
+  Component(sectionScreens, "Section Screens", "React components (Explore, Map, Plan)", "Renders per-section content; consumes API-005")
+  Component(errorModule, "Error/Resilience Module", "Redux Toolkit", "Owns ScreenLoad state machine; drives Retry / Return-to-Home UI per Spec Section 6.1")
+  Component(apiClientComp, "API Client", "Axios instance + interceptors", "Single centralized HTTP client; timeout 10000ms; maps 4xx/5xx/timeout to error UI")
+  Component(persistence, "Persistence Adapter", "AsyncStorage + react-native-keychain wrappers", "Routes non-PII to AsyncStorage, PII/tokens to Keychain/Keystore")
+}
+
+ContainerDb(asyncStorage, "AsyncStorage", "Device local store", "Non-PII cache")
+ContainerDb(keychain, "Keychain/Keystore", "Device secure store", "PII and tokens")
+System_Ext(sb360Backend, "SB360 Backend API", "API-001..API-006")
+System_Ext(telemetrySvc, "Error/Crash Telemetry Service", "Vendor TBD")
+
+Rel(visitor, navModule, "Taps nav item (Explore/Map/Plan/My Profile)")
+Rel(visitor, profileModule, "Switches language")
+Rel(navModule, errorModule, "Triggers ScreenLoad transitions on tab selection")
+Rel(navModule, sectionScreens, "Routes to selected section")
+Rel(sectionScreens, errorModule, "Reports load success/failure")
+Rel(profileModule, i18nModule, "Requests locale change")
+Rel(i18nModule, apiClientComp, "GET /api/v1/i18n/{locale}")
+Rel(navModule, apiClientComp, "GET /api/v1/navigation/config")
+Rel(profileModule, apiClientComp, "PUT /api/v1/profile/language, GET /api/v1/profile/me")
+Rel(sectionScreens, apiClientComp, "GET /api/v1/sections/{sectionId}/content")
+Rel(errorModule, apiClientComp, "Retries failed request / health check")
+Rel(apiClientComp, sb360Backend, "HTTPS/REST JSON, TLS 1.2+, Bearer JWT", "")
+Rel(apiClientComp, telemetrySvc, "Emits nav.*/profile.*/ui.* audit events (PII-free)")
+Rel(navModule, persistence, "Persists SessionState (activeTabId, lastVisitedRoute)")
+Rel(i18nModule, persistence, "Persists LocalePreference")
+Rel(profileModule, persistence, "Persists UserProfile PII")
+Rel(persistence, asyncStorage, "Non-PII read/write")
+Rel(persistence, keychain, "PII/token read/write")
+
+@enduml

@@ -1,0 +1,75 @@
+# OSX
+.DS_Store
+
+# Xcode
+build/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+xcuserdata
+*.xccheckout
+*.moved-aside
+DerivedData
+*.hmap
+*.ipa
+*.xcuserstate
+ios/.xcode.env.local
+ios/Pods/
+ios/build/
+
+# Android/IntelliJ
+build/
+.idea
+.gradle
+local.properties
+*.iml
+*.hprof
+.cxx/
+android/.gradle/
+android/app/build/
+android/app/release/
+*.keystore
+*.jks
+*.p12
+
+# node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Secrets / environment files (NEVER commit real values)
+.env
+.env.*
+!.env.example
+
+# fastlane
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+
+# Bundle artifacts
+*.jsbundle
+
+# CocoaPods
+/ios/Pods/
+
+# Ruby / bundler
+vendor/bundle/
+
+# Logs
+*.log
+
+# Editors
+.vscode/
+.idea/
+
+# TypeScript build output
+*.tsbuildinfo
+dist/
+coverage/
+
+# Expo (web/dev-preview tooling)
+.expo/
+web-build/

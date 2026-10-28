@@ -1,0 +1,25 @@
+{
+  "nav": {
+    "explore": "Explore",
+    "map": "Map",
+    "plan": "Plan",
+    "profile": "My Profile"
+  },
+  "error": {
+    "generic": "Something went wrong. Please try again.",
+    "retry": "Retry",
+    "returnHome": "Return to Home"
+  },
+  "profile": {
+    "languageSectionTitle": "Language",
+    "languageSelectorLabel": "Choose your preferred language",
+    "english": "English",
+    "arabic": "Arabic",
+    "loading": "Loading profile...",
+    "loadError": "Unable to load your profile right now."
+  },
+  "section": {
+    "loading": "Loading content...",
+    "loadError": "Unable to load this section right now."
+  }
+}

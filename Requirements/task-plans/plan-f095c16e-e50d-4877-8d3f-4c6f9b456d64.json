@@ -1,0 +1,815 @@
+{
+  "coverageSummary": "This plan covers the SB360 React Native mobile application's navigation shell, resilience/error-handling, bilingual (English/Arabic) localization with RTL/LTR mirroring, secure/local storage, centralized API client, audit/telemetry, and repository/environment hygiene. Foundation tasks establish the app skeleton, centralized API client, secure/local storage, i18n/RTL engine, auth/session handling, and audit emission module that all story slices build on. Story tasks map 1:1 to all 25 user stories (US-001–US-025), each delivering the full vertical slice (UI + state + API integration) needed to satisfy its linked AC-* rows. The backend API itself (navigation config, i18n, profile, section content, health endpoints) is treated as a pre-existing external system per Dependencies §2 Assumption 1 — only client-side integration/consumption is in scope.",
+  "requirementIdsCovered": [
+    "FR-001–FR-025",
+    "NFR-PERF-001–005",
+    "NFR-REL-001–004",
+    "NFR-ACC-001",
+    "NFR-SEC-001–008",
+    "NFR-MAINT-001–003",
+    "US-001–US-025",
+    "AC-001–AC-025",
+    "BR-001–BR-007"
+  ],
+  "uncoveredRequirementIds": [
+    "Backend API implementation (API-001–API-006 endpoints themselves): out of scope — Dependencies §2 Assumption 1 states backend already exists; this plan covers client consumption only."
+  ],
+  "phases": [
+    {
+      "id": "foundation",
+      "name": "Foundation — platform scaffold and shared infrastructure",
+      "exitCriteria": [
+        "Done when the React Native/TypeScript app skeleton, navigation module boundaries, and Redux store are written to disk under Code/frontend/",
+        "Done when the centralized API client module, secure/local storage modules, i18n/RTL engine, auth/session module, and audit emission module source files exist under Code/frontend/src/",
+        "Done when environment-based configuration files and .gitignore rules excluding secrets/build artifacts are in place"
+      ]
+    },
+    {
+      "id": "story",
+      "name": "User stories — vertical slices",
+      "exitCriteria": [
+        "Done when every US-001 through US-025 has at least one implementation slice whose source files satisfy its mapped AC-* rows",
+        "Done when all story tasks depend on the relevant foundation task(s), ensuring no story code references unbuilt shared modules"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "tempId": "F1",
+      "title": "Create app skeleton, navigation module boundaries, and Redux store",
+      "description": "Write the project directory layout, package manifest placeholder, root App entry, Redux store setup, and React Navigation container wiring under Code/frontend/.",
+      "requirementRef": "FR-021, NFR-MAINT-003",
+      "dependencies": [],
+      "parallelGroup": "foundation-batch-1",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-021"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:scaffold"
+      ],
+      "acceptanceCriteria": [
+        "AC-021: Done when Code/frontend/ directory tree, .gitignore (excluding build artifacts/secrets), and root App/store files are written to disk"
+      ],
+      "taskContext": "BR-001/BR-005 require a single cross-platform codebase (React Native + TypeScript, React Navigation, Redux Toolkit per Dependencies §2 Assumption 4). FR-021/AC-021 require the repo to contain no committed build artifacts or secrets. Create the top-level app structure (src/navigation, src/store, src/screens, src/components) with a .gitignore covering node_modules, build output, and env files. Write the project directory layout, package manifest placeholder, root App entry, Redux store setup, and React Navigation container wiring under Code/frontend/."
+    },
+    {
+      "tempId": "F2",
+      "title": "Build centralized API client module with timeout and error contract",
+      "description": "Write src/api/client.ts (Axios instance with 10s timeout, HTTPS enforcement, generic error mapping) and src/config/env.ts reading from environment files for the base URL.",
+      "requirementRef": "FR-020, FR-022",
+      "dependencies": [],
+      "parallelGroup": "foundation-batch-1",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-020",
+        "AC-022"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:api"
+      ],
+      "acceptanceCriteria": [
+        "AC-020: Done when src/api/client.ts is the single exported HTTP client module used for all API-00x calls",
+        "AC-022: Done when src/config/env.ts resolves backend base URL from environment variables with no hardcoded host"
+      ],
+      "taskContext": "FR-020/AC-020 require all backend calls to route through one centralized Axios-based client (NFR-MAINT-001: swap-without-refactor abstraction). FR-022/AC-022 require the backend base URL to be driven by environment configuration (react-native-config) with no code changes needed to switch environments. NFR-PERF-003/Dependencies Assumption 3 fix the client-side request timeout at 10,000 ms for all calls; NFR-SEC-001 requires transport encryption (HTTPS only) and NFR-SEC-006 requires generic, non-leaking error messages surfaced from failures. Write src/api/client.ts (Axios instance with 10s timeout, HTTPS enforcement, generic error mapping) and src/config/env.ts reading from environment files for the base URL."
+    },
+    {
+      "tempId": "F3",
+      "title": "Implement local and secure storage modules",
+      "description": "Write src/storage/secureStorage.ts (Keychain-backed) and src/storage/localStorage.ts (AsyncStorage-backed) with typed get/set APIs.",
+      "requirementRef": "FR-024",
+      "dependencies": [],
+      "parallelGroup": "foundation-batch-1",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-024"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:storage"
+      ],
+      "acceptanceCriteria": [
+        "AC-024: Done when src/storage/secureStorage.ts and src/storage/localStorage.ts are written with segregated APIs for PII/tokens vs. non-sensitive data"
+      ],
+      "taskContext": "FR-024/AC-024 and NFR-SEC-003 require PII (email, displayName) and auth tokens to be stored only in secure storage (react-native-keychain), while non-sensitive data (last-selected language, last-active tab, cached nav config per Dependencies §1) uses AsyncStorage. NFR-SEC-004 requires PII to never be written to logs. Two distinct storage adapters must be exposed with clear boundaries so feature code cannot accidentally mix sensitive and non-sensitive data. Write src/storage/secureStorage.ts (Keychain-backed) and src/storage/localStorage.ts (AsyncStorage-backed) with typed get/set APIs."
+    },
+    {
+      "tempId": "F4",
+      "title": "Build i18n and RTL/LTR layout direction engine",
+      "description": "Write src/i18n/index.ts (i18next config + en/ar resource bundles) and src/i18n/useDirection.ts (RTL/LTR context hook).",
+      "requirementRef": "FR-010, FR-015, FR-025",
+      "dependencies": [],
+      "parallelGroup": "foundation-batch-1",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-010",
+        "AC-015",
+        "AC-025"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:i18n"
+      ],
+      "acceptanceCriteria": [
+        "AC-010: Done when src/i18n/index.ts loads en/ar bundles and exposes a translation hook with no hardcoded strings remaining in shared components",
+        "AC-015: Done when src/i18n/useDirection.ts exposes a layout-direction value derived from the active locale"
+      ],
+      "taskContext": "FR-010/AC-010 and FR-025/AC-025 require all user-facing strings (including navigation labels) to be sourced from i18next/react-i18next resource bundles, with no hardcoded strings. FR-015/AC-015 and NFR-ACC-001 require layout direction (RTL for Arabic, LTR for English) to mirror atomically using react-native-localize and I18nManager. This module provides the translation hook, locale resource bundles (en, ar), and a layout-direction context consumed by all screens. Write src/i18n/index.ts (i18next config + en/ar resource bundles) and src/i18n/useDirection.ts (RTL/LTR context hook)."
+    },
+    {
+      "tempId": "F5",
+      "title": "Implement auth/session module with reset-on-failure handling",
+      "description": "Write src/auth/sessionManager.ts (token attach interceptor + reset-on-401 handler) built on the F2 client.",
+      "requirementRef": "NFR-SEC-007",
+      "dependencies": [
+        "F2"
+      ],
+      "parallelGroup": "foundation-batch-2",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "NFR-SEC-007"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:auth"
+      ],
+      "acceptanceCriteria": [
+        "NFR-SEC-007: Done when src/auth/sessionManager.ts clears stored tokens and session state on any 401 response from the API client"
+      ],
+      "taskContext": "Dependencies §2 Assumption 2 states authenticated endpoints (API-003 language preference, API-004 profile) use Bearer JWT. NFR-SEC-007 requires the session to be reset (tokens cleared, user returned to an unauthenticated state) whenever authentication fails on a protected call. This module attaches the Bearer token to outgoing requests via the F2 API client and listens for 401 responses to trigger a session reset. Write src/auth/sessionManager.ts (token attach interceptor + reset-on-401 handler) built on the F2 client."
+    },
+    {
+      "tempId": "F6",
+      "title": "Build audit event emission module (PII-free)",
+      "description": "Write src/audit/auditEmitter.ts with a typed event schema and PII-field stripping guard.",
+      "requirementRef": "FR-023",
+      "dependencies": [
+        "F2"
+      ],
+      "parallelGroup": "foundation-batch-2",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-023"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:observability"
+      ],
+      "acceptanceCriteria": [
+        "AC-023: Done when src/audit/auditEmitter.ts exposes emitAuditEvent() and strips/rejects any PII-shaped keys before emission"
+      ],
+      "taskContext": "FR-023/AC-023 require an audit event to be emitted for every state transition (navigation tab change, language change, retry, error, invalid-transition-reject) without including PII, per NFR-SEC-004. This module exposes a single emitAuditEvent(eventType, metadata) function that strips any PII-shaped fields before dispatching to the telemetry sink (vendor TBD per Dependencies §1, so this emits to a local event bus/console sink as a placeholder). Write src/audit/auditEmitter.ts with a typed event schema and PII-field stripping guard."
+    },
+    {
+      "tempId": "S01",
+      "title": "US-001: View Persistent Bottom Navigation Bar",
+      "description": "Write src/navigation/BottomNavBar.tsx rendering nav items fetched via the F2 API client, mounted at the root navigator level so it persists across all primary screens.",
+      "requirementRef": "US-001",
+      "dependencies": [
+        "F1",
+        "F2"
+      ],
+      "parallelGroup": "nav-batch-1",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-001",
+        "FR-001"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-001: Done when BottomNavBar.tsx is mounted in the root navigator and renders on every primary screen route"
+      ],
+      "taskContext": "FR-001/AC-001 require a bottom navigation bar to render on all primary screens, sourcing its items from the navigation config (API-001 via the F2 client). The bar must render even while config is loading (skeleton/placeholder state) to avoid a blank screen (ties to NFR-REL-001). Write src/navigation/BottomNavBar.tsx rendering nav items fetched via the F2 API client, mounted at the root navigator level so it persists across all primary screens."
+    },
+    {
+      "tempId": "S02",
+      "title": "US-002: Switch Between Primary Sections",
+      "description": "Extend src/navigation/BottomNavBar.tsx and add src/navigation/navigationActions.ts to dispatch navigate() on item tap.",
+      "requirementRef": "US-002",
+      "dependencies": [
+        "S01"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-002",
+        "FR-002"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-002: Done when tapping any nav item navigates to its configured section screen"
+      ],
+      "taskContext": "FR-002/AC-002 require tapping a navigation item to activate the corresponding primary section/screen via React Navigation. This slice wires tap handlers on BottomNavBar items to navigation.navigate() calls against the routes resolved from the navigation config. Extend src/navigation/BottomNavBar.tsx and add src/navigation/navigationActions.ts to dispatch navigate() on item tap."
+    },
+    {
+      "tempId": "S03",
+      "title": "US-003: See Only One Active Tab at a Time",
+      "description": "Add src/store/navigationSlice.ts (activeTabId state) and connect BottomNavBar active styling to this slice, updated on every navigate action from S02.",
+      "requirementRef": "US-003",
+      "dependencies": [
+        "S02"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-003",
+        "FR-003"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-003: Done when exactly one tab is styled active at any time, synchronized with the focused route"
+      ],
+      "taskContext": "FR-003/AC-003 require single active-tab enforcement: only the tab matching the currently focused route is visually marked active, and selecting a new tab deactivates the previous one. State is tracked in the Redux navigation slice (F1 store). Add src/store/navigationSlice.ts (activeTabId state) and connect BottomNavBar active styling to this slice, updated on every navigate action from S02."
+    },
+    {
+      "tempId": "S04",
+      "title": "US-004: Resume Where I Left Off",
+      "description": "Write src/navigation/persistTab.ts to save activeTabId to localStorage on change and rehydrate navigationSlice on app start.",
+      "requirementRef": "US-004",
+      "dependencies": [
+        "S03",
+        "F3"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-004",
+        "FR-004"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:state"
+      ],
+      "acceptanceCriteria": [
+        "AC-004: Done when the previously active tab is restored and rendered as active after an app restart"
+      ],
+      "taskContext": "FR-004/AC-004 require the last-active tab to persist across app sessions, using the F3 local (non-sensitive) storage adapter per Dependencies §1. On app restart, the navigation slice (S03) should hydrate from the persisted value before first render. Write src/navigation/persistTab.ts to save activeTabId to localStorage on change and rehydrate navigationSlice on app start."
+    },
+    {
+      "tempId": "S05",
+      "title": "US-005: Navigation Loads Reliably on App Start",
+      "description": "Write src/navigation/navConfigService.ts to fetch config via F2 client on startup, cache it via F3 localStorage, and fall back to the cached copy on failure.",
+      "requirementRef": "US-005",
+      "dependencies": [
+        "S01",
+        "F2"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-005",
+        "FR-005"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:api"
+      ],
+      "acceptanceCriteria": [
+        "AC-005: Done when navConfigService.ts successfully populates BottomNavBar items from the backend response on a cold start",
+        "NFR-REL-002: Done when a cached config is used to render BottomNavBar if the startup fetch fails"
+      ],
+      "taskContext": "FR-005/AC-005 require the navigation configuration to load from the backend (API-001) at app start via the F2 API client, within NFR-PERF-002 target, with NFR-REL-002 offline resilience using a cached config fallback (F3 storage) when the network call fails. Write src/navigation/navConfigService.ts to fetch config via F2 client on startup, cache it via F3 localStorage, and fall back to the cached copy on failure."
+    },
+    {
+      "tempId": "S06",
+      "title": "US-006: Clear Error Message Instead of a Blank Screen",
+      "description": "Write src/components/ErrorState.tsx and wire it into navConfigService.ts (S05) and screen loaders to render on fetch failure instead of an empty view.",
+      "requirementRef": "US-006",
+      "dependencies": [
+        "S05"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-006",
+        "FR-006"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-006: Done when any navigation/screen load failure renders ErrorState.tsx with a generic localized message instead of a blank screen"
+      ],
+      "taskContext": "FR-006/AC-006 and NFR-REL-001 (zero blank-screen failure rate) require that any navigation/screen load failure displays a non-blank, localized error state instead of an empty screen. NFR-SEC-006 requires the error message to be generic/non-leaking of internal details. Write src/components/ErrorState.tsx and wire it into navConfigService.ts (S05) and screen loaders to render on fetch failure instead of an empty view."
+    },
+    {
+      "tempId": "S07",
+      "title": "US-007: Retry a Failed Navigation Action",
+      "description": "Add a Retry button to ErrorState.tsx (S06) that re-invokes the original failed service call with a throttle guard (e.g., debounce/min-interval), emitting an audit event via auditEmitter.",
+      "requirementRef": "US-007",
+      "dependencies": [
+        "S06",
+        "F6"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-007",
+        "FR-007"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-007: Done when tapping Retry re-invokes the failed navigation/screen call and succeeds when the backend responds",
+        "NFR-REL-003: Done when repeated rapid Retry taps are throttled to a minimum interval"
+      ],
+      "taskContext": "FR-007/AC-007 require a Retry action on the error state that re-invokes the original failed call. NFR-REL-003 requires retry throttling (prevent rapid repeat calls) and NFR-PERF-005 requires the retry action to be responsive. Each retry attempt emits an audit event via F6. Add a Retry button to ErrorState.tsx (S06) that re-invokes the original failed service call with a throttle guard (e.g., debounce/min-interval), emitting an audit event via auditEmitter."
+    },
+    {
+      "tempId": "S08",
+      "title": "US-008: Return to a Safe Screen After a Failure",
+      "description": "Add a \"Return to Home\" button to ErrorState.tsx (S06/S07) that unconditionally dispatches navigate('Home') via the navigationActions module (S02).",
+      "requirementRef": "US-008",
+      "dependencies": [
+        "S07",
+        "S01"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-008",
+        "FR-008"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-008: Done when tapping Return to Home always lands the user on the Home screen from any error state"
+      ],
+      "taskContext": "FR-008/AC-008 require a \"Return to Home\" action on the error state that always navigates to a known-safe Home screen, regardless of the failure type, supporting BR-002 (zero-dead-end navigation resilience). Add a \"Return to Home\" button to ErrorState.tsx (S06/S07) that unconditionally dispatches navigate('Home') via the navigationActions module (S02)."
+    },
+    {
+      "tempId": "S09",
+      "title": "US-009: App Never Breaks on Invalid Actions",
+      "description": "Add a guard in navigationActions.ts (S02) validating the target route against the current nav config before calling navigate(), rejecting and emitting an audit event on mismatch.",
+      "requirementRef": "US-009",
+      "dependencies": [
+        "S03",
+        "S08",
+        "F6"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-009",
+        "FR-009"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-009: Done when an invalid/unknown route target is rejected without navigating and without a UI crash",
+        "FR-023: Done when a rejected invalid transition emits an audit event via auditEmitter"
+      ],
+      "taskContext": "FR-009/AC-009 require invalid navigation transitions (e.g., tapping a tab while config is malformed, or a route not in the resolved nav config) to be rejected silently without breaking the UI, with an audit event emitted via F6 (NFR-SEC-005 client-side input validation). Add a guard in navigationActions.ts (S02) validating the target route against the current nav config before calling navigate(), rejecting and emitting an audit event on mismatch."
+    },
+    {
+      "tempId": "S10",
+      "title": "US-010: Navigation Labels in My Language",
+      "description": "Update BottomNavBar.tsx (S01) to replace any literal label text with t('nav.<key>') calls against the F4 i18n module.",
+      "requirementRef": "US-010",
+      "dependencies": [
+        "S01",
+        "F4"
+      ],
+      "parallelGroup": "i18n-batch-1",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-010",
+        "FR-010",
+        "FR-025"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:i18n"
+      ],
+      "acceptanceCriteria": [
+        "AC-010: Done when all BottomNavBar labels render from i18n keys, with no literal strings in the component source",
+        "AC-025: Done when a search of navigation component source shows zero hardcoded user-facing strings"
+      ],
+      "taskContext": "FR-010/AC-010 and FR-025/AC-025 require navigation labels in BottomNavBar to be sourced exclusively from the F4 i18next resource bundles (en/ar) via the translation hook, with zero hardcoded strings. Update BottomNavBar.tsx (S01) to replace any literal label text with t('nav.<key>') calls against the F4 i18n module."
+    },
+    {
+      "tempId": "S11",
+      "title": "US-011: Choose My Preferred Language",
+      "description": "Write src/screens/profile/LanguageSelector.tsx rendering available locales from F4 and dispatching a locale-change action on selection.",
+      "requirementRef": "US-011",
+      "dependencies": [
+        "F4",
+        "F2"
+      ],
+      "parallelGroup": "i18n-batch-1",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-011",
+        "FR-011"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-011: Done when the My Profile screen displays a language selector listing English and Arabic and accepts a selection"
+      ],
+      "taskContext": "FR-011/AC-011 require a language selector on the My Profile screen allowing the visitor to choose English or Arabic, driven by the F4 i18n module's supported-locale list. Write src/screens/profile/LanguageSelector.tsx rendering available locales from F4 and dispatching a locale-change action on selection."
+    },
+    {
+      "tempId": "S12",
+      "title": "US-012: My Language Choice Is Remembered",
+      "description": "Write src/profile/languagePreferenceService.ts to save the selection to F3 secure/local storage and PUT it to API-003 via the F2/F5 authenticated client.",
+      "requirementRef": "US-012",
+      "dependencies": [
+        "S11",
+        "F3",
+        "F2",
+        "F5"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-012",
+        "FR-012"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:state"
+      ],
+      "acceptanceCriteria": [
+        "AC-012: Done when a language selection is saved to local storage and, when online/authenticated, PUT to the backend language-preference endpoint"
+      ],
+      "taskContext": "FR-012/AC-012 require the selected language to persist locally (F3) immediately and sync to the backend (API-003 via F2 client + F5 Bearer auth) when the visitor is online and authenticated. Write src/profile/languagePreferenceService.ts to save the selection to F3 secure/local storage and PUT it to API-003 via the F2/F5 authenticated client."
+    },
+    {
+      "tempId": "S13",
+      "title": "US-013: My Language Choice Syncs When I'm Back Online",
+      "description": "Write src/profile/languageSyncQueue.ts that queues a failed languagePreferenceService (S12) sync attempt and retries it on network-reconnect events.",
+      "requirementRef": "US-013",
+      "dependencies": [
+        "S12",
+        "F2"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-013",
+        "FR-013"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:state"
+      ],
+      "acceptanceCriteria": [
+        "AC-013: Done when a deferred language preference is resent to the backend automatically upon detecting reconnection"
+      ],
+      "taskContext": "FR-013/AC-013 and NFR-REL-004 require a deferred language-sync queue: if the backend PUT (S12) fails due to offline/unauthenticated state, the pending preference is queued locally and retried automatically on reconnect. Write src/profile/languageSyncQueue.ts that queues a failed languagePreferenceService (S12) sync attempt and retries it on network-reconnect events."
+    },
+    {
+      "tempId": "S14",
+      "title": "US-014: Language Changes Apply Instantly",
+      "description": "Wire LanguageSelector.tsx (S11) selection to F4's i18n.changeLanguage() call and verify dependent components re-render via the i18next React context.",
+      "requirementRef": "US-014",
+      "dependencies": [
+        "S11",
+        "F4"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-014",
+        "FR-014"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:i18n"
+      ],
+      "acceptanceCriteria": [
+        "AC-014: Done when selecting a language updates visible text across the active screen without requiring an app restart"
+      ],
+      "taskContext": "FR-014/AC-014 and NFR-PERF-004 require the selected language to take effect across the app immediately upon selection, without an app restart, by calling i18next's changeLanguage and triggering a re-render of localized components. Wire LanguageSelector.tsx (S11) selection to F4's i18n.changeLanguage() call and verify dependent components re-render via the i18next React context."
+    },
+    {
+      "tempId": "S15",
+      "title": "US-015: Layout Mirrors Correctly for Arabic",
+      "description": "Wire the root App layout and BottomNavBar (S01) container styles to F4's useDirection hook so the whole screen mirrors atomically on language change (S14).",
+      "requirementRef": "US-015",
+      "dependencies": [
+        "S14",
+        "F4"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-015",
+        "FR-015"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-015: Done when selecting Arabic flips the full screen layout to RTL atomically with no partially-mirrored state"
+      ],
+      "taskContext": "FR-015/AC-015 and NFR-ACC-001 require the entire layout direction (text alignment, flex direction, navigation bar order) to mirror atomically to RTL when Arabic is selected, using F4's useDirection hook and I18nManager.forceRTL. Wire the root App layout and BottomNavBar (S01) container styles to F4's useDirection hook so the whole screen mirrors atomically on language change (S14)."
+    },
+    {
+      "tempId": "S16",
+      "title": "US-016: Icons Point the Right Direction in Arabic",
+      "description": "Write src/components/DirectionalIcon.tsx that applies a horizontal-flip transform based on the F4 useDirection hook value, and replace directional icon usages in BottomNavBar/screens with it.",
+      "requirementRef": "US-016",
+      "dependencies": [
+        "S15"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-016",
+        "FR-016"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-016: Done when all directional icons render mirrored when layout direction is RTL and normal when LTR"
+      ],
+      "taskContext": "FR-016/AC-016 require directional icons (e.g., back/forward arrows, chevrons) in navigation and screens to flip horizontally to match the active layout direction set in S15. Write src/components/DirectionalIcon.tsx that applies a horizontal-flip transform based on the F4 useDirection hook value, and replace directional icon usages in BottomNavBar/screens with it."
+    },
+    {
+      "tempId": "S17",
+      "title": "US-017: My Profile Reflects My Saved Language",
+      "description": "Write src/screens/profile/ProfileScreen.tsx fetching profile data via F2/F5 client and initializing LanguageSelector's selected value from the response.",
+      "requirementRef": "US-017",
+      "dependencies": [
+        "S12",
+        "F2",
+        "F5"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-017",
+        "FR-017"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:ui"
+      ],
+      "acceptanceCriteria": [
+        "AC-017: Done when the My Profile screen displays the currently saved language as pre-selected after fetching profile data"
+      ],
+      "taskContext": "FR-017/AC-017 require the My Profile screen to initialize the UserProfile and LocalePreference from the backend (API-004 via F2/F5 authenticated client) on load, reflecting the saved language choice so the LanguageSelector (S11) pre-selects the correct value. Write src/screens/profile/ProfileScreen.tsx fetching profile data via F2/F5 client and initializing LanguageSelector's selected value from the response."
+    },
+    {
+      "tempId": "S18",
+      "title": "US-018: Section Content Loads Within Each Tab",
+      "description": "Write src/screens/sections/SectionScreen.tsx fetching content via F2 client for the active sectionId and rendering ErrorState (S06) on failure.",
+      "requirementRef": "US-018",
+      "dependencies": [
+        "S01",
+        "F2"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-018",
+        "FR-018"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:api"
+      ],
+      "acceptanceCriteria": [
+        "AC-018: Done when navigating to a section tab fetches and renders that section's content from the backend"
+      ],
+      "taskContext": "FR-018/AC-018 require each primary section screen (reached via BottomNavBar) to fetch and render its content from the per-section backend endpoint (API-005, placeholder passthrough schema per Dependencies §2 Assumption 6) using the F2 client, reusing the S06 ErrorState on failure. Write src/screens/sections/SectionScreen.tsx fetching content via F2 client for the active sectionId and rendering ErrorState (S06) on failure."
+    },
+    {
+      "tempId": "S19",
+      "title": "US-019: App Diagnostics Can Confirm Backend Availability",
+      "description": "Write src/diagnostics/healthCheck.ts calling API-006 via the F2 client and exposing a simple status result for internal diagnostic use.",
+      "requirementRef": "US-019",
+      "dependencies": [
+        "F2"
+      ],
+      "parallelGroup": "foundation-batch-2",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-019",
+        "FR-019"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:api"
+      ],
+      "acceptanceCriteria": [
+        "AC-019: Done when healthCheck.ts returns an up/down status based on the backend health endpoint response"
+      ],
+      "taskContext": "FR-019/AC-019 require an internal diagnostics capability that calls the backend health endpoint (API-006) via the F2 client to confirm availability, for internal/diagnostic use only (not user-facing UI). Write src/diagnostics/healthCheck.ts calling API-006 via the F2 client and exposing a simple status result for internal diagnostic use."
+    },
+    {
+      "tempId": "S20",
+      "title": "US-020: Backend Changes Don't Require App Rework",
+      "description": "Audit and refactor navConfigService.ts (S05), languagePreferenceService.ts (S12), and ProfileScreen.tsx (S17) to confirm all backend calls route through the single F2 client export.",
+      "requirementRef": "US-020",
+      "dependencies": [
+        "S01",
+        "S11",
+        "F2"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-020",
+        "FR-020"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:api"
+      ],
+      "acceptanceCriteria": [
+        "AC-020: Done when a source scan confirms no feature module performs HTTP calls outside the F2 client module"
+      ],
+      "taskContext": "FR-020/AC-020 and NFR-MAINT-001 require that navigation (S01) and profile/language (S11) feature code call backend endpoints exclusively through the F2 centralized API client module, never via direct ad-hoc network calls, so backend contract changes only require updates inside the client module. Audit and refactor navConfigService.ts (S05), languagePreferenceService.ts (S12), and ProfileScreen.tsx (S17) to confirm all backend calls route through the single F2 client export."
+    },
+    {
+      "tempId": "S21",
+      "title": "US-021: Repository Stays Clean of Secrets and Build Artifacts",
+      "description": "Extend Code/frontend/.gitignore (from F1) with explicit secret/build-artifact patterns and write Code/frontend/.env.example with placeholder keys only.",
+      "requirementRef": "US-021",
+      "dependencies": [
+        "F1"
+      ],
+      "parallelGroup": "foundation-batch-2",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-021",
+        "FR-021"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:repo-hygiene"
+      ],
+      "acceptanceCriteria": [
+        "AC-021: Done when .gitignore excludes env files/keystores/build output and .env.example contains only placeholder values"
+      ],
+      "taskContext": "FR-021/AC-021 require the repository to contain no committed build artifacts, node_modules, or secret files. This slice finalizes the F1 .gitignore with explicit entries for env files, keystores, and build output directories, and adds a placeholder .env.example with no real values. Extend Code/frontend/.gitignore (from F1) with explicit secret/build-artifact patterns and write Code/frontend/.env.example with placeholder keys only."
+    },
+    {
+      "tempId": "S22",
+      "title": "US-022: Environment Config Lets Us Switch Backends Safely",
+      "description": "Write Code/frontend/.env.development, .env.staging, .env.production placeholder files consumed by src/config/env.ts (F2).",
+      "requirementRef": "US-022",
+      "dependencies": [
+        "F2"
+      ],
+      "parallelGroup": "foundation-batch-2",
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-022",
+        "FR-022"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:config"
+      ],
+      "acceptanceCriteria": [
+        "AC-022: Done when switching the active env file changes the resolved backend base URL used by the F2 client with no code edits"
+      ],
+      "taskContext": "FR-022/AC-022 and BR-006 require the backend base URL and related config (timeout override, feature flags) to be switchable per environment (dev/staging/prod) using react-native-config files, with no source-code changes needed to point at a different backend. Write Code/frontend/.env.development, .env.staging, .env.production placeholder files consumed by src/config/env.ts (F2)."
+    },
+    {
+      "tempId": "S23",
+      "title": "US-023: Every State Change Is Auditable Without Exposing Personal Data",
+      "description": "Add auditEmitter.emitAuditEvent() calls at each state-transition point identified in navigationSlice.ts (S03), the invalid-transition guard (S09), and language change handling (S14).",
+      "requirementRef": "US-023",
+      "dependencies": [
+        "F6",
+        "S03",
+        "S09"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-023",
+        "FR-023"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:observability"
+      ],
+      "acceptanceCriteria": [
+        "AC-023: Done when tab switches, invalid-transition rejections, and language changes each emit an audit event containing no PII fields"
+      ],
+      "taskContext": "FR-023/AC-023 and NFR-SEC-004 require that every navigation state transition (tab switch from S03, invalid-transition rejection from S09, language change from S14) calls the F6 auditEmitter with event type and non-PII metadata only. Add auditEmitter.emitAuditEvent() calls at each state-transition point identified in navigationSlice.ts (S03), the invalid-transition guard (S09), and language change handling (S14)."
+    },
+    {
+      "tempId": "S24",
+      "title": "US-024: My Personal Data Is Stored Securely on My Device",
+      "description": "Audit ProfileScreen.tsx (S17) and languagePreferenceService.ts (S12) to ensure PII/tokens route to secureStorage.ts and only non-sensitive values route to localStorage.ts (both from F3).",
+      "requirementRef": "US-024",
+      "dependencies": [
+        "F3",
+        "S12",
+        "S17"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-024",
+        "FR-024"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:security"
+      ],
+      "acceptanceCriteria": [
+        "AC-024: Done when a source scan confirms email/displayName/tokens are written only via secureStorage.ts, never localStorage.ts"
+      ],
+      "taskContext": "FR-024/AC-024 and NFR-SEC-003 require that PII fields (email, displayName) and auth tokens obtained from ProfileScreen (S17) and session handling are written exclusively to the F3 secureStorage adapter, never to localStorage/AsyncStorage, while non-sensitive preferences (language choice from S12) use localStorage. Audit ProfileScreen.tsx (S17) and languagePreferenceService.ts (S12) to ensure PII/tokens route to secureStorage.ts and only non-sensitive values route to localStorage.ts (both from F3)."
+    },
+    {
+      "tempId": "S25",
+      "title": "US-025: Every Piece of Navigation Text Is Translatable",
+      "description": "Update ErrorState.tsx (S06), Retry/Return-Home buttons (S07/S08), and SectionScreen.tsx (S18) to replace literal text with F4 translation hook calls and add corresponding keys to the en/ar bundles.",
+      "requirementRef": "US-025",
+      "dependencies": [
+        "S10",
+        "F4"
+      ],
+      "priority": "MEDIUM",
+      "type": "IMPLEMENTATION",
+      "phase": "story",
+      "satisfiesAcceptanceCriteriaIds": [
+        "AC-025",
+        "FR-025"
+      ],
+      "tags": [
+        "track:frontend",
+        "layer:i18n"
+      ],
+      "acceptanceCriteria": [
+        "AC-025: Done when a source scan of all navigation-related components shows zero hardcoded user-facing strings remaining"
+      ],
+      "taskContext": "FR-025/AC-025 require that beyond the BottomNavBar labels (S10), all remaining navigation-adjacent UI text (error states S06, retry/return-home buttons S07/S08, section screen headers S18) is sourced from F4 i18n keys with zero hardcoded strings. Update ErrorState.tsx (S06), Retry/Return-Home buttons (S07/S08), and SectionScreen.tsx (S18) to replace literal text with F4 translation hook calls and add corresponding keys to the en/ar bundles."
+    }
+  ]
+}
